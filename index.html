@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snooker Scoreboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f2; }
+    .sb-wrap { padding: 1.5rem 1rem; max-width: 700px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 1.5rem; text-align: center; }
+    .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .mode-row { display: flex; align-items: center; gap: 8px; }
+    .mode-row label { font-size: 14px; color: #666; }
+    .players { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1rem; }
+    .player-card { background: #fff; border: 1px solid #e0e0d8; border-radius: 12px; padding: 1rem; }
+    .player-name { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; background: none; border: none; border-bottom: 1px dashed #ccc; outline: none; width: 100%; font-family: Arial, sans-serif; cursor: text; padding: 0 0 2px 0; }
+    .player-name:focus { border-bottom: 1px solid #2980b9; }
+    .player-name:hover { border-bottom: 1px dashed #999; }
+    .player-score { font-size: 42px; font-weight: 600; color: #1a1a1a; line-height: 1.1; margin-bottom: 4px; }
+    .player-break { font-size: 13px; color: #888; margin-bottom: 8px; }
+    .dot-row { display: flex; flex-wrap: wrap; gap: 4px; min-height: 16px; margin-bottom: 10px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); }
+    .ball-btns { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 8px; }
+    .ball-btn { border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; padding: 7px 0; transition: opacity 0.1s, transform 0.1s; }
+    .ball-btn:active { transform: scale(0.93); opacity: 0.8; }
+    .frame-row { display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .frame-count { font-size: 15px; font-weight: 600; color: #1a1a1a; min-width: 20px; text-align: center; }
+    .frame-label { font-size: 12px; color: #888; }
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+    .stat-card { background: #fff; border: 1px solid #e0e0d8; border-radius: 8px; padding: 10px 12px; }
+    .stat-label { font-size: 12px; color: #888; margin-bottom: 2px; }
+    .stat-val { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+    .foul-status { font-size: 13px; color: #c0392b; margin-bottom: 0.75rem; min-height: 18px; text-align: center; font-weight: 500; }
+    .actions-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .actions-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .btn { border: 1px solid #d0d0c8; border-radius: 8px; background: #fff; color: #1a1a1a; cursor: pointer; font-size: 14px; padding: 9px 12px; transition: background 0.1s, transform 0.1s; font-family: Arial, sans-serif; font-weight: 500; }
+    .btn:hover { background: #f4f4f2; }
+    .btn:active { transform: scale(0.98); }
+    .btn-danger { border-color: #f5c6c6; color: #c0392b; background: #fff; }
+    .btn-danger:hover { background: #fff0f0; }
+    .btn-warn { border-color: #f5dfa0; color: #9a6a00; background: #fff; }
+    .btn-warn:hover { background: #fffbef; }
+    .btn-muted { color: #888; border-color: #d0d0c8; }
+    .btn-muted:hover { background: #f4f4f2; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-sm { font-size: 13px; padding: 5px 10px; }
+    .divider { border: none; border-top: 1px solid #e0e0d8; margin: 12px 0; }
+    select.btn { padding: 5px 8px; }
+  </style>
+</head>
+<body>
+  <div class="sb-wrap">
+    <div class="top-row">
+      <h1 style="margin:0;">JSC Scoreboard</h1>
+      <div class="mode-row">
+        <label for="game-mode">Reds:</label>
+        <select id="game-mode" class="btn btn-sm" onchange="setGameMode()">
+          <option value="6">6</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="players">
+      <!-- Player A -->
+      <div class="player-card">
+        <input class="player-name" id="name-a" type="text" value="Hoekstra" onchange="updateFoulLabel()" />
+        <div class="player-score" id="score-a">0</div>
+        <div class="player-break" id="break-a">Break: 0</div>
+        <div class="dot-row" id="history-a"></div>
+        <div class="ball-btns">
+          <button class="ball-btn" style="background:#c0392b;color:#fff;" onclick="incrementScore('a',1,'red')">1</button>
+          <button class="ball-btn" style="background:#f1c40f;color:#7d6608;" onclick="incrementScore('a',2,'#f1c40f')">2</button>
+          <button class="ball-btn" style="background:#27ae60;color:#fff;" onclick="incrementScore('a',3,'#27ae60')">3</button>
+          <button class="ball-btn" style="background:#7d5a3c;color:#fff;" onclick="incrementScore('a',4,'#7d5a3c')">4</button>
+          <button class="ball-btn" style="background:#2980b9;color:#fff;" onclick="incrementScore('a',5,'#2980b9')">5</button>
+          <button class="ball-btn" style="background:#f4a7b9;color:#7d2b3e;" onclick="incrementScore('a',6,'#f4a7b9')">6</button>
+          <button class="ball-btn" style="background:#2c2c2c;color:#fff;" onclick="incrementScore('a',7,'#2c2c2c')">7</button>
+        </div>
+        <div class="frame-row">
+          <button class="btn btn-sm" onclick="changeFrame('a',-1)">−</button>
+          <span class="frame-label">Frames</span>
+          <span class="frame-count" id="frame-a">0</span>
+          <button class="btn btn-sm" onclick="changeFrame('a',1)">+</button>
+        </div>
+      </div>
+
+      <!-- Player B -->
+      <div class="player-card">
+        <input class="player-name" id="name-b" type="text" value="Tulloch" onchange="updateFoulLabel()" />
+        <div class="player-score" id="score-b">0</div>
+        <div class="player-break" id="break-b">Break: 0</div>
+        <div class="dot-row" id="history-b"></div>
+        <div class="ball-btns">
+          <button class="ball-btn" style="background:#c0392b;color:#fff;" onclick="incrementScore('b',1,'red')">1</button>
+          <button class="ball-btn" style="background:#f1c40f;color:#7d6608;" onclick="incrementScore('b',2,'#f1c40f')">2</button>
+          <button class="ball-btn" style="background:#27ae60;color:#fff;" onclick="incrementScore('b',3,'#27ae60')">3</button>
+          <button class="ball-btn" style="background:#7d5a3c;color:#fff;" onclick="incrementScore('b',4,'#7d5a3c')">4</button>
+          <button class="ball-btn" style="background:#2980b9;color:#fff;" onclick="incrementScore('b',5,'#2980b9')">5</button>
+          <button class="ball-btn" style="background:#f4a7b9;color:#7d2b3e;" onclick="incrementScore('b',6,'#f4a7b9')">6</button>
+          <button class="ball-btn" style="background:#2c2c2c;color:#fff;" onclick="incrementScore('b',7,'#2c2c2c')">7</button>
+        </div>
+        <div class="frame-row">
+          <button class="btn btn-sm" onclick="changeFrame('b',-1)">−</button>
+          <span class="frame-label">Frames</span>
+          <span class="frame-count" id="frame-b">0</span>
+          <button class="btn btn-sm" onclick="changeFrame('b',1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Points available</div>
+        <div class="stat-val" id="red-points">107</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Difference</div>
+        <div class="stat-val" id="point-difference">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Reds left</div>
+        <div class="stat-val" id="remaining-reds">10</div>
+      </div>
+    </div>
+
+    <div class="foul-status" id="foul-indicator"></div>
+
+    <div class="actions-3">
+      <button class="btn btn-danger" id="foul-btn-a" onclick="toggleFoul('a')">Foul → Hoekstra</button>
+      <button class="btn btn-danger" id="foul-btn-b" onclick="toggleFoul('b')">Foul → Tulloch</button>
+      <button class="btn btn-muted" onclick="toggleFoul(null)">Foul off</button>
+    </div>
+    <div class="actions-2">
+      <button class="btn btn-warn" onclick="removeFoulRed()">🔴 Red potted (foul)</button>
+      <button class="btn btn-warn" id="undo-btn" onclick="undoLastAction()" disabled>↩ Undo</button>
+    </div>
+    <hr class="divider">
+    <button class="btn btn-muted" style="width:100%;" onclick="resetScores()">Reset scores</button>
+  </div>
+
+  <script>
+    let scoreA = 0, scoreB = 0, breakA = 0, breakB = 0;
+    let redPoints = 10, totalPoints = 107;
+    let foulTo = null, lastPlayer = null;
+    let frameA = 0, frameB = 0;
+    let history = [];
+
+    function getName(team) {
+      return document.getElementById('name-' + team).value.trim() || (team === 'a' ? 'Player 1' : 'Player 2');
+    }
+
+    function updateFoulLabel() {
+      document.getElementById('foul-btn-a').textContent = 'Foul → ' + getName('a');
+      document.getElementById('foul-btn-b').textContent = 'Foul → ' + getName('b');
+      if (foulTo) {
+        document.getElementById('foul-indicator').textContent = 'Foul mode: points to ' + getName(foulTo);
+      }
+    }
+
+    function saveState() {
+      const hA = Array.from(document.getElementById('history-a').children).map(d => d.style.backgroundColor);
+      const hB = Array.from(document.getElementById('history-b').children).map(d => d.style.backgroundColor);
+      history.push({
+        scoreA, scoreB, breakA, breakB,
+        redPoints, totalPoints, foulTo, lastPlayer,
+        frameA, frameB,
+        hA: [...hA], hB: [...hB],
+        foulText: document.getElementById('foul-indicator').textContent
+      });
+      document.getElementById('undo-btn').disabled = false;
+    }
+
+    function undoLastAction() {
+      if (!history.length) return;
+      const p = history.pop();
+      scoreA = p.scoreA; scoreB = p.scoreB;
+      breakA = p.breakA; breakB = p.breakB;
+      redPoints = p.redPoints; totalPoints = p.totalPoints;
+      foulTo = p.foulTo; lastPlayer = p.lastPlayer;
+      frameA = p.frameA; frameB = p.frameB;
+
+      document.getElementById('score-a').textContent = scoreA;
+      document.getElementById('score-b').textContent = scoreB;
+      document.getElementById('break-a').textContent = 'Break: ' + breakA;
+      document.getElementById('break-b').textContent = 'Break: ' + breakB;
+      document.getElementById('frame-a').textContent = frameA;
+      document.getElementById('frame-b').textContent = frameB;
+      document.getElementById('foul-indicator').textContent = p.foulText;
+
+      const hA = document.getElementById('history-a'); hA.innerHTML = '';
+      const hB = document.getElementById('history-b'); hB.innerHTML = '';
+      p.hA.forEach(c => { const d = document.createElement('div'); d.className = 'dot'; d.style.backgroundColor = c; hA.appendChild(d); });
+      p.hB.forEach(c => { const d = document.createElement('div'); d.className = 'dot'; d.style.backgroundColor = c; hB.appendChild(d); });
+
+      updatePointsDisplay();
+      if (!history.length) document.getElementById('undo-btn').disabled = true;
+    }
+
+    function setGameMode() {
+      const mode = parseInt(document.getElementById('game-mode').value);
+      redPoints = mode;
+      totalPoints = redPoints * 8 + 27;
+      resetScores();
+    }
+
+    function updatePointsDisplay() {
+      document.getElementById('red-points').textContent = totalPoints;
+      document.getElementById('point-difference').textContent = Math.abs(scoreA - scoreB);
+      document.getElementById('remaining-reds').textContent = redPoints;
+    }
+
+    function incrementScore(team, points, color) {
+      saveState();
+
+      if (foulTo) {
+        if (foulTo === 'a') { scoreA += points; updateUI('a', points, color, true); }
+        else if (foulTo === 'b') { scoreB += points; updateUI('b', points, color, true); }
+        updatePointsDisplay();
+        return;
+      }
+
+      if (redPoints > 0 && color !== 'red') {
+        points += 1; redPoints--; totalPoints -= 8;
+      } else if (color === 'red') {
+        redPoints--; totalPoints -= 8;
+      } else if (redPoints === 0) {
+        totalPoints -= points;
+      }
+
+      if (team === 'a') {
+        if (lastPlayer !== 'a') resetBreak('a');
+        scoreA += points; breakA += points;
+        updateUI('a', points, color);
+      } else {
+        if (lastPlayer !== 'b') resetBreak('b');
+        scoreB += points; breakB += points;
+        updateUI('b', points, color);
+      }
+
+      lastPlayer = team;
+      updatePointsDisplay();
+    }
+
+    function updateUI(team, points, color, isFoul = false) {
+      if (team === 'a') {
+        document.getElementById('score-a').textContent = scoreA;
+        document.getElementById('break-a').textContent = 'Break: ' + breakA;
+      } else {
+        document.getElementById('score-b').textContent = scoreB;
+        document.getElementById('break-b').textContent = 'Break: ' + breakB;
+      }
+      if (!isFoul) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        dot.style.backgroundColor = color;
+        document.getElementById('history-' + team).appendChild(dot);
+      }
+    }
+
+    function resetBreak(team) {
+      document.getElementById('break-' + team).textContent = 'Break: 0';
+      document.getElementById('history-' + team).innerHTML = '';
+      if (team === 'a') breakA = 0; else breakB = 0;
+    }
+
+    function toggleFoul(team) {
+      saveState();
+      foulTo = team;
+      const ind = document.getElementById('foul-indicator');
+      if (team === 'a') ind.textContent = 'Foul mode: points to ' + getName('a');
+      else if (team === 'b') ind.textContent = 'Foul mode: points to ' + getName('b');
+      else ind.textContent = '';
+    }
+
+    function removeFoulRed() {
+      if (redPoints <= 0) return;
+      saveState();
+      redPoints--; totalPoints -= 8;
+      updatePointsDisplay();
+    }
+
+    function resetScores() {
+      history = [];
+      document.getElementById('undo-btn').disabled = true;
+      scoreA = scoreB = breakA = breakB = 0;
+      redPoints = parseInt(document.getElementById('game-mode').value);
+      totalPoints = redPoints * 8 + 27;
+      lastPlayer = null; foulTo = null;
+
+      document.querySelectorAll('.dot-row').forEach(h => h.innerHTML = '');
+      document.getElementById('score-a').textContent = '0';
+      document.getElementById('score-b').textContent = '0';
+      document.getElementById('break-a').textContent = 'Break: 0';
+      document.getElementById('break-b').textContent = 'Break: 0';
+      document.getElementById('foul-indicator').textContent = '';
+      document.getElementById('frame-a').textContent = frameA;
+      document.getElementById('frame-b').textContent = frameB;
+      updatePointsDisplay();
+    }
+
+    function changeFrame(team, change) {
+      saveState();
+      if (team === 'a') { frameA += change; document.getElementById('frame-a').textContent = frameA; }
+      else { frameB += change; document.getElementById('frame-b').textContent = frameB; }
+    }
+  </script>
+</body>
+</html>
